@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>檢傷一+二級占比 × 急診暫留逾48小時比率 散布圖</title>
+<style>
+  :root{--bg:#eef4f5;--card:#fff;--ink:#23302f;--muted:#7c8a89;
+        --accent:#1d6f78;--accent2:#2a9099;--line:#dde9ea;
+        --tp:#3f6fb0;--ntp:#2a9099;--oth:#9aa6a5;--taida:#e8743b;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"PingFang TC","Microsoft JhengHei",Segoe UI,Roboto,sans-serif;
+       background:var(--bg);color:var(--ink);line-height:1.5;-webkit-text-size-adjust:100%}
+  .wrap{max-width:900px;margin:0 auto;padding:20px 16px 60px}
+  h1{font-size:1.32rem;margin:0 0 6px;color:var(--accent)}
+  .sub{font-size:.82rem;color:var(--muted);margin-bottom:2px}
+  .sub a{color:var(--accent2)}
+  .badges{margin:10px 0 4px;display:flex;flex-wrap:wrap;gap:8px}
+  .badge{background:#d6ecee;color:var(--accent);font-size:.82rem;padding:5px 12px;border-radius:8px;font-weight:600}
+  .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0 6px}
+  .flabel{font-size:.8rem;color:var(--muted)}
+  button.f{border:1px solid var(--accent2);background:#fff;color:var(--accent2);
+           padding:6px 13px;border-radius:20px;font-size:.86rem;cursor:pointer;font-weight:600}
+  button.f.active{background:var(--accent2);color:#fff}
+  .toggles{font-size:.82rem;color:var(--muted);margin:4px 2px;display:flex;gap:16px;flex-wrap:wrap}
+  .toggles label{cursor:pointer;user-select:none}
+  .chartcard{background:var(--card);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);
+             padding:10px 6px 4px;margin-top:8px;position:relative}
+  svg{width:100%;height:auto;display:block;touch-action:pan-y}
+  .grid{stroke:#eef1f1;stroke-width:1}
+  .axis{stroke:#b9c4c3;stroke-width:1.2}
+  .tick{fill:var(--muted);font-size:11px}
+  .axlab{fill:var(--ink);font-size:13px;font-weight:600}
+  .reg{stroke:#e8743b;stroke-width:2;stroke-dasharray:6 4;opacity:.85}
+  .pt{cursor:pointer;transition:opacity .15s}
+  .pt circle{stroke:#fff;stroke-width:1.2}
+  .pt.dim{opacity:.18}
+  .ptlab{font-size:10px;fill:#7a4a28;font-weight:600;pointer-events:none}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.8rem;color:var(--ink);margin:6px 4px 0;padding:6px 4px}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .dot{width:11px;height:11px;border-radius:50%;display:inline-block;border:1px solid #fff;box-shadow:0 0 0 1px #ccc}
+  .tip{position:absolute;pointer-events:none;background:#23302f;color:#fff;font-size:12px;
+       padding:7px 10px;border-radius:7px;opacity:0;transition:opacity .12s;white-space:nowrap;z-index:9;
+       box-shadow:0 3px 10px rgba(0,0,0,.25)}
+  .tip b{color:#ffd9a8}
+  footer{margin-top:22px;font-size:.76rem;color:var(--muted);line-height:1.7;text-align:center}
+  @media(max-width:560px){h1{font-size:1.12rem}.ptlab{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="sub" style="margin-bottom:8px"><a href="./">← 返回資料表（急診暫留逾48小時）</a></div>
+  <h1>檢傷一+二級占比　×　急診暫留逾 48 小時案件比率</h1>
+  <div class="sub">縱軸 Y＝檢傷一+二級占比（114 年第四季）｜橫軸 X＝急診轉住院暫留逾 48 小時案件比率（114 年第三季）</div>
+  <div class="sub">資料來源：衛福部健保署「院所指標值查詢」　<a href="https://med.nhi.gov.tw/ihqe0000/pepC_Search001.html?ind=1652&amp;type=2" target="_blank" rel="noopener">med.nhi.gov.tw</a>　｜　台北市、新北市及指定醫院</div>
+  <div class="badges">
+    <span class="badge">樣本數 N＝34 家</span>
+    <span class="badge">Pearson r＝0.161</span>
+    <span class="badge" id="eqbadge"></span>
+  </div>
+
+  <div class="filters">
+    <span class="flabel">聚焦：</span>
+    <button class="f active" data-filter="all">全部</button>
+    <button class="f" data-filter="臺北市">臺北市</button>
+    <button class="f" data-filter="新北市">新北市</button>
+    <button class="f" data-filter="taida">台大＋其他v1</button>
+  </div>
+  <div class="toggles">
+    <label><input type="checkbox" id="tReg" checked> 顯示趨勢線</label>
+    <label><input type="checkbox" id="tLab" checked> 標註台大＋其他v1</label>
+  </div>
+
+  <div class="chartcard">
+    <svg id="svg" viewBox="0 0 820 560" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="tip" id="tip"></div>
+  </div>
+  <div class="legend">
+    <span><i class="dot" style="background:var(--taida)"></i>台大＋其他v1</span>
+    <span><i class="dot" style="background:var(--tp)"></i>臺北市</span>
+    <span><i class="dot" style="background:var(--ntp)"></i>新北市</span>
+    <span><i class="dot" style="background:var(--oth)"></i>其他指定</span>
+    <span><i style="width:18px;border-top:2px dashed #e8743b;display:inline-block"></i>趨勢線</span>
+  </div>
+
+  <footer>
+    每一點代表一家醫院。兩軸為<b>不同季別</b>（檢傷 114Q4、暫留 114Q3），併圖僅供關聯性概覽。<br>
+    僅納入兩項指標皆有數值之醫院（部分小型醫院無檢傷一/二級指標而未列入）。本頁為資料整理，僅供參考。
+  </footer>
+</div>
+
+<script>
+const M = {"pts": [{"name": "輔仁大學學校財團法人輔仁大學附設醫院", "short": "輔大", "x": 27.24, "y": 3.79, "region": "新北市", "taida": true, "special": "區域醫院", "total": 14244}, {"name": "國立臺灣大學醫學院附設醫院", "short": "台大總院", "x": 25.94, "y": 8.48, "region": "臺北市", "taida": true, "special": "醫學中心", "total": 24379}, {"name": "國立臺灣大學醫學院附設醫院癌醫中心分院", "short": "台大癌醫", "x": 24.59, "y": 8.83, "region": "臺北市", "taida": true, "special": "區域醫院", "total": 1427}, {"name": "新北市立土城醫院（委託長庚醫療財團法人興建經營）", "short": "", "x": 22.93, "y": 3.59, "region": "新北市", "taida": false, "special": "區域醫院", "total": 12932}, {"name": "臺北市立萬芳醫院－委託臺北醫學大學辦理", "short": "", "x": 22.82, "y": 7.16, "region": "臺北市", "taida": false, "special": "醫學中心", "total": 12495}, {"name": "天主教耕莘醫療財團法人耕莘醫院", "short": "", "x": 20.69, "y": 4.61, "region": "新北市", "taida": false, "special": "區域醫院", "total": 11733}, {"name": "國立臺灣大學醫學院附設醫院雲林分院", "short": "台大雲林", "x": 18.27, "y": 8.69, "region": "其他", "taida": true, "special": "區域醫院", "total": 13396}, {"name": "行天宮醫療志業醫療財團法人恩主公醫院", "short": "", "x": 16.98, "y": 8.18, "region": "新北市", "taida": false, "special": "區域醫院", "total": 11633}, {"name": "衛生福利部雙和醫院〈委託臺北醫學大學興建經營〉", "short": "", "x": 15.41, "y": 7.72, "region": "新北市", "taida": false, "special": "醫學中心", "total": 19448}, {"name": "新光醫療財團法人新光吳火獅紀念醫院", "short": "", "x": 14.71, "y": 7.48, "region": "臺北市", "taida": false, "special": "醫學中心", "total": 10757}, {"name": "三軍總醫院附設民眾診療服務處", "short": "", "x": 13.6, "y": 9.4, "region": "臺北市", "taida": false, "special": "醫學中心", "total": 23167}, {"name": "國立臺灣大學醫學院附設醫院新竹臺大分院新竹醫院", "short": "台大新竹", "x": 10.56, "y": 9.26, "region": "其他", "taida": true, "special": "醫學中心", "total": 11020}, {"name": "臺北榮民總醫院", "short": "", "x": 8.96, "y": 9.39, "region": "臺北市", "taida": false, "special": "醫學中心", "total": 19355}, {"name": "台灣基督長老教會馬偕醫療財團法人馬偕紀念醫院", "short": "", "x": 7.43, "y": 8.54, "region": "臺北市", "taida": false, "special": "醫學中心", "total": 36117}, {"name": "國泰醫療財團法人汐止國泰綜合醫院", "short": "", "x": 4.36, "y": 3.38, "region": "新北市", "taida": false, "special": "區域醫院", "total": 10892}, {"name": "臺北醫學大學附設醫院", "short": "", "x": 3.93, "y": 9.84, "region": "臺北市", "taida": false, "special": "區域醫院", "total": 11684}, {"name": "佛教慈濟醫療財團法人台北慈濟醫院", "short": "", "x": 2.7, "y": 8.67, "region": "新北市", "taida": false, "special": "醫學中心", "total": 14345}, {"name": "國立臺灣大學醫學院附設醫院新竹臺大分院生醫醫院", "short": "台大生醫", "x": 2.69, "y": 6.33, "region": "其他", "taida": true, "special": "區域醫院", "total": 9284}, {"name": "衛生福利部樂生療養院", "short": "", "x": 2.53, "y": 10.41, "region": "新北市", "taida": false, "special": "地區醫院", "total": 2747}, {"name": "臺北市立聯合醫院", "short": "", "x": 2.34, "y": 5.83, "region": "臺北市", "taida": false, "special": "區域醫院", "total": 37962}, {"name": "天主教靈醫會醫療財團法人羅東聖母醫院", "short": "羅東聖母", "x": 2.03, "y": 7.59, "region": "其他", "taida": true, "special": "區域醫院", "total": 7157}, {"name": "醫療財團法人徐元智先生醫藥基金會亞東紀念醫院", "short": "", "x": 2.0, "y": 7.67, "region": "新北市", "taida": false, "special": "醫學中心", "total": 27746}, {"name": "國泰醫療財團法人國泰綜合醫院", "short": "", "x": 1.54, "y": 3.81, "region": "臺北市", "taida": false, "special": "醫學中心", "total": 9323}, {"name": "新北市立聯合醫院", "short": "", "x": 0.94, "y": 2.11, "region": "新北市", "taida": false, "special": "區域醫院", "total": 13729}, {"name": "衛生福利部臺北醫院", "short": "", "x": 0.79, "y": 5.53, "region": "新北市", "taida": false, "special": "區域醫院", "total": 11673}, {"name": "基督復臨安息日會醫療財團法人臺安醫院", "short": "", "x": 0.11, "y": 4.68, "region": "臺北市", "taida": false, "special": "區域醫院", "total": 7675}, {"name": "振興醫療財團法人振興醫院", "short": "", "x": 0.0, "y": 9.22, "region": "臺北市", "taida": false, "special": "區域醫院", "total": 9837}, {"name": "三軍總醫院松山分院附設民眾診療服務處", "short": "", "x": 0.0, "y": 3.31, "region": "臺北市", "taida": false, "special": "區域醫院", "total": 5501}, {"name": "醫療財團法人辜公亮基金會和信治癌中心醫院", "short": "", "x": 0.0, "y": 16.42, "region": "臺北市", "taida": false, "special": "區域醫院", "total": 682}, {"name": "天主教耕莘醫療財團法人永和耕莘醫院", "short": "", "x": 0.0, "y": 2.65, "region": "新北市", "taida": false, "special": "地區醫院", "total": 8264}, {"name": "新泰綜合醫院", "short": "", "x": 0.0, "y": 2.6, "region": "新北市", "taida": false, "special": "地區醫院", "total": 3118}, {"name": "西園醫療社團法人西園醫院", "short": "", "x": 0.0, "y": 1.34, "region": "臺北市", "taida": false, "special": "地區醫院", "total": 4330}, {"name": "宏仁醫院", "short": "", "x": 0.0, "y": 3.19, "region": "新北市", "taida": false, "special": "地區醫院", "total": 1851}, {"name": "國立臺灣大學醫學院附設醫院金山分院", "short": "", "x": 0.0, "y": 1.75, "region": "新北市", "taida": false, "special": "地區醫院", "total": 2167}], "slope": 0.0566, "intercept": 6.0536, "r": 0.161, "n": 34, "xmax": 28, "ymax": 18};
+const SVGNS="http://www.w3.org/2000/svg";
+const W=820,H=560,ml=66,mr=24,mt=24,mb=64;
+const xmax=M.xmax,ymax=M.ymax;
+const px=x=>ml+(x/xmax)*(W-ml-mr);
+const py=y=>(H-mb)-(y/ymax)*(H-mt-mb);
+const svg=document.getElementById("svg"),tip=document.getElementById("tip");
+const colOf=d=> d.taida?"var(--taida)" : d.region==="臺北市"?"var(--tp)" : d.region==="新北市"?"var(--ntp)" : "var(--oth)";
+let curFilter="all";
+
+function el(n,a){const e=document.createElementNS(SVGNS,n);for(const k in a)e.setAttribute(k,a[k]);return e;}
+
+function drawAxes(){
+  // gridlines + ticks
+  for(let gx=0;gx<=xmax;gx+=4){
+    svg.appendChild(el("line",{class:"grid",x1:px(gx),y1:py(0),x2:px(gx),y2:py(ymax)}));
+    const t=el("text",{class:"tick",x:px(gx),y:py(0)+18,"text-anchor":"middle"});t.textContent=gx+"%";svg.appendChild(t);
+  }
+  for(let gy=0;gy<=ymax;gy+=3){
+    svg.appendChild(el("line",{class:"grid",x1:px(0),y1:py(gy),x2:px(xmax),y2:py(gy)}));
+    const t=el("text",{class:"tick",x:px(0)-9,y:py(gy)+4,"text-anchor":"end"});t.textContent=gy+"%";svg.appendChild(t);
+  }
+  svg.appendChild(el("line",{class:"axis",x1:px(0),y1:py(0),x2:px(xmax),y2:py(0)}));
+  svg.appendChild(el("line",{class:"axis",x1:px(0),y1:py(0),x2:px(0),y2:py(ymax)}));
+  // axis labels
+  const xl=el("text",{class:"axlab",x:(px(0)+px(xmax))/2,y:H-16,"text-anchor":"middle"});
+  xl.textContent="急診暫留逾48小時案件比率（X，114Q3）";svg.appendChild(xl);
+  const yl=el("text",{class:"axlab",x:16,y:(py(0)+py(ymax))/2,"text-anchor":"middle",
+                      transform:"rotate(-90 16 "+((py(0)+py(ymax))/2)+")"});
+  yl.textContent="檢傷一+二級占比（Y，114Q4）";svg.appendChild(yl);
+}
+
+let regLine=null, ptsG=null, labG=null;
+function drawReg(){
+  if(regLine){regLine.remove();regLine=null;}
+  if(!document.getElementById("tReg").checked) return;
+  const x1=0,x2=xmax;
+  let y1=M.intercept+M.slope*x1, y2=M.intercept+M.slope*x2;
+  regLine=el("line",{class:"reg",x1:px(x1),y1:py(Math.max(0,Math.min(ymax,y1))),
+                     x2:px(x2),y2:py(Math.max(0,Math.min(ymax,y2)))});
+  svg.insertBefore(regLine, ptsG);
+}
+
+function match(d){return curFilter==="all"|| (curFilter==="taida"?d.taida:d.region===curFilter);}
+
+function draw(){
+  if(ptsG)ptsG.remove(); if(labG)labG.remove();
+  ptsG=el("g",{}); labG=el("g",{});
+  M.pts.forEach(d=>{
+    const g=el("g",{class:"pt"+(match(d)?"":" dim")});
+    const c=el("circle",{cx:px(d.x),cy:py(d.y),r:d.taida?7:5.5,fill:colOf(d)});
+    g.appendChild(c);
+    g.addEventListener("mouseenter",e=>showTip(e,d));
+    g.addEventListener("mousemove",e=>moveTip(e));
+    g.addEventListener("mouseleave",hideTip);
+    ptsG.appendChild(g);
+    if(d.taida && d.short && document.getElementById("tLab").checked){
+      const t=el("text",{class:"ptlab",x:px(d.x)+9,y:py(d.y)+3});t.textContent=d.short;
+      if(!match(d))t.setAttribute("opacity",".25");
+      labG.appendChild(t);
+    }
+  });
+  svg.appendChild(ptsG); svg.appendChild(labG);
+  drawReg();
+}
+
+function showTip(e,d){
+  tip.innerHTML="<b>"+d.name+"</b><br>檢傷一+二級占比："+d.y.toFixed(2)+"%（Y）<br>暫留逾48h比率："+d.x.toFixed(2)+"%（X）"
+               +(d.total!=null?"<br>急診來診量："+d.total.toLocaleString('en'):"");
+  tip.style.opacity=1; moveTip(e);
+}
+function moveTip(e){
+  const card=document.querySelector(".chartcard").getBoundingClientRect();
+  let x=e.clientX-card.left+12, y=e.clientY-card.top+12;
+  if(x+tip.offsetWidth>card.width) x=e.clientX-card.left-tip.offsetWidth-12;
+  tip.style.left=x+"px"; tip.style.top=y+"px";
+}
+function hideTip(){tip.style.opacity=0;}
+
+document.querySelectorAll("button.f").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("button.f").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");curFilter=b.dataset.filter;draw();});
+document.getElementById("tReg").onchange=drawReg;
+document.getElementById("tLab").onchange=draw;
+
+document.getElementById("eqbadge").textContent="趨勢線 Y＝"+M.slope.toFixed(3)+"X＋"+M.intercept.toFixed(2);
+drawAxes(); draw();
+</script>
+</body>
+</html>
