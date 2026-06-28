@@ -24,6 +24,12 @@
   button.f.active{background:var(--accent2);color:#fff}
   .toggles{font-size:.82rem;color:var(--muted);margin:4px 2px;display:flex;gap:16px;flex-wrap:wrap}
   .toggles label{cursor:pointer;user-select:none}
+  .searchbar{display:flex;gap:8px;align-items:center;margin:8px 2px 2px;flex-wrap:wrap}
+  .searchbar input{border:1px solid var(--line);border-radius:8px;padding:7px 11px;font-size:.9rem;width:230px;outline:none}
+  .searchbar input:focus{border-color:var(--accent2)}
+  .searchbar .res{font-size:.8rem;color:var(--accent2);font-weight:600}
+  .pt.hit circle{stroke:#7a4a10;stroke-width:2.5}
+  .hitlab{font-size:11px;fill:#5a3410;font-weight:700;pointer-events:none;paint-order:stroke;stroke:#fff;stroke-width:3px}
   .chartcard{background:var(--card);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);
              padding:10px 6px 4px;margin-top:8px;position:relative}
   svg{width:100%;height:auto;display:block;touch-action:pan-y}
@@ -69,6 +75,10 @@
   <div class="toggles">
     <label><input type="checkbox" id="tReg" checked> 顯示趨勢線</label>
     <label><input type="checkbox" id="tLab" checked> 標註台大＋其他v1</label>
+  </div>
+  <div class="searchbar">
+    <input id="q" type="search" placeholder="🔍 搜尋醫院名稱，於圖中高亮…">
+    <span class="res" id="res"></span>
   </div>
 
   <div class="chartcard">
@@ -133,20 +143,34 @@ function drawReg(){
   svg.insertBefore(regLine, ptsG);
 }
 
+let curQ="";
+function norm(s){return (s||"").toLowerCase().replace(/臺/g,"台");}
 function match(d){return curFilter==="all"|| (curFilter==="taida"?d.taida:d.region===curFilter);}
+function hit(d){return curQ!=="" && (norm(d.name)+norm(d.short)+norm(d.region)).includes(curQ);}
 
 function draw(){
   if(ptsG)ptsG.remove(); if(labG)labG.remove();
   ptsG=el("g",{}); labG=el("g",{});
-  M.pts.forEach(d=>{
-    const g=el("g",{class:"pt"+(match(d)?"":" dim")});
-    const c=el("circle",{cx:px(d.x),cy:py(d.y),r:d.taida?7:5.5,fill:colOf(d)});
+  const showTaidaLab=document.getElementById("tLab").checked;
+  // 搜尋命中者最後畫（置於最上層）
+  const ordered=[...M.pts].sort((a,b)=>(hit(a)?1:0)-(hit(b)?1:0));
+  ordered.forEach(d=>{
+    const isHit=hit(d);
+    const dim = curQ!=="" ? !isHit : !match(d);
+    const g=el("g",{class:"pt"+(dim?" dim":"")+(isHit?" hit":"")});
+    const c=el("circle",{cx:px(d.x),cy:py(d.y),r:(d.taida?7:5.5)+(isHit?3.5:0),fill:colOf(d)});
     g.appendChild(c);
     g.addEventListener("mouseenter",e=>showTip(e,d));
     g.addEventListener("mousemove",e=>moveTip(e));
     g.addEventListener("mouseleave",hideTip);
     ptsG.appendChild(g);
-    if(d.taida && d.short && document.getElementById("tLab").checked){
+    const right=px(d.x)>W*0.72;
+    if(isHit){
+      const nm=d.short?d.short:(d.name.length>14?d.name.slice(0,14)+"…":d.name);
+      const t=el("text",{class:"hitlab",x:px(d.x)+(right?-11:11),y:py(d.y)-9,
+                         "text-anchor":right?"end":"start"});
+      t.textContent=nm; labG.appendChild(t);
+    }else if(curQ==="" && d.taida && d.short && showTaidaLab){
       const t=el("text",{class:"ptlab",x:px(d.x)+9,y:py(d.y)+3});t.textContent=d.short;
       if(!match(d))t.setAttribute("opacity",".25");
       labG.appendChild(t);
@@ -174,6 +198,14 @@ document.querySelectorAll("button.f").forEach(b=>b.onclick=()=>{
   b.classList.add("active");curFilter=b.dataset.filter;draw();});
 document.getElementById("tReg").onchange=drawReg;
 document.getElementById("tLab").onchange=draw;
+
+const qEl=document.getElementById("q"), resEl=document.getElementById("res");
+qEl.addEventListener("input",()=>{
+  curQ=norm(qEl.value.trim());
+  const n=curQ===""?0:M.pts.filter(hit).length;
+  resEl.textContent = curQ==="" ? "" : (n? ("已高亮 "+n+" 家") : "查無符合醫院");
+  draw();
+});
 
 document.getElementById("eqbadge").textContent="趨勢線 Y＝"+M.slope.toFixed(3)+"X＋"+M.intercept.toFixed(2);
 drawAxes(); draw();
