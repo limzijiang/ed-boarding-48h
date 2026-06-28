@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>急診轉住院暫留逾48小時案件比率（114年第三季）</title>
+<style>
+  :root{
+    --bg:#eef4f5; --card:#fff; --ink:#23302f; --muted:#7c8a89;
+    --accent:#1d6f78; --accent2:#2a9099; --line:#dde9ea;
+    --bar:#2a9099; --chip:#d6ecee;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"PingFang TC","Microsoft JhengHei",Segoe UI,Roboto,sans-serif;
+       background:var(--bg);color:var(--ink);line-height:1.5;-webkit-text-size-adjust:100%}
+  .wrap{max-width:980px;margin:0 auto;padding:20px 16px 60px}
+  header h1{font-size:1.4rem;margin:0 0 6px;color:var(--accent)}
+  header .sub{font-size:.82rem;color:var(--muted);margin-bottom:2px}
+  header .sub a{color:var(--accent2)}
+  .natbox{display:inline-block;margin-top:10px;background:var(--chip);color:var(--accent);
+          font-size:.85rem;padding:6px 14px;border-radius:8px;font-weight:600}
+  .toolbar{position:sticky;top:0;z-index:5;background:var(--bg);
+           padding:14px 0 10px;margin-top:14px;border-bottom:1px solid var(--line)}
+  .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .flabel{font-size:.8rem;color:var(--muted);margin-right:2px}
+  button.f{border:1px solid var(--accent2);background:#fff;color:var(--accent2);
+           padding:7px 14px;border-radius:20px;font-size:.88rem;cursor:pointer;transition:.15s;font-weight:600}
+  button.f:hover{background:var(--chip)}
+  button.f.active{background:var(--accent2);color:#fff}
+  .search{margin-left:auto;display:flex;gap:6px;align-items:center}
+  .search input{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:.88rem;width:160px;outline:none}
+  .search input:focus{border-color:var(--accent2)}
+  .count{font-size:.8rem;color:var(--muted);margin:10px 2px}
+  .tablecard{background:var(--card);border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow-x:auto}
+  table{border-collapse:collapse;width:100%;min-width:680px;font-size:.86rem}
+  thead th{background:var(--accent2);color:#fff;font-weight:600;padding:11px 10px;text-align:center;
+           position:sticky;top:0;white-space:nowrap;cursor:pointer;user-select:none}
+  thead th .arrow{font-size:.7rem;opacity:.6;margin-left:3px}
+  thead th.sorted .arrow{opacity:1}
+  tbody td{padding:9px 10px;border-top:1px solid var(--line);text-align:center;white-space:nowrap}
+  tbody td.name{text-align:left;white-space:normal;min-width:230px;font-weight:500}
+  tbody tr:hover{background:#f3fafb}
+  tbody tr.taida{background:#eef8f9}
+  tbody tr.taida:hover{background:#e3f3f5}
+  .tag{display:inline-block;font-size:.68rem;padding:1px 7px;border-radius:10px;background:var(--chip);color:var(--accent);margin-left:6px;vertical-align:middle}
+  .num{font-variant-numeric:tabular-nums}
+  .bar{display:inline-block;height:8px;border-radius:4px;vertical-align:middle;margin-right:6px;background:var(--bar)}
+  .pcell{display:flex;align-items:center;justify-content:flex-end;gap:0;min-width:96px}
+  .pcell .val{font-variant-numeric:tabular-nums;min-width:52px;text-align:right;font-weight:600}
+  .na{color:#bbb}
+  footer{margin-top:24px;font-size:.76rem;color:var(--muted);text-align:center;line-height:1.7}
+  @media(max-width:560px){header h1{font-size:1.18rem}.search{margin-left:0;width:100%}.search input{flex:1;width:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>急診轉住院暫留急診超過 48 小時案件比率</h1>
+    <div class="sub">資料期間：<b>114年第三季</b>（此指標目前最新一季；114 年第四季尚未公布）</div>
+    <div class="sub">資料來源：衛生福利部中央健康保險署「院所指標值查詢」　<a href="https://med.nhi.gov.tw/ihqe0000/pepC_Search001.html?ind=1652&amp;type=2" target="_blank" rel="noopener">med.nhi.gov.tw</a></div>
+    <div class="sub">院所指標值＝暫留逾 48 小時案件數 ÷ 急診轉住院案件數（指標 1652）。比率越低越好。</div>
+    <div class="natbox">全國指標值：6.03%</div>
+  </header>
+
+  <div class="toolbar">
+    <div class="filters">
+      <span class="flabel">篩選：</span>
+      <button class="f active" data-filter="all">全部</button>
+      <button class="f" data-filter="臺北市">臺北市</button>
+      <button class="f" data-filter="新北市">新北市</button>
+      <button class="f" data-filter="taida">台大＋其他v1</button>
+      <div class="search"><input id="q" type="search" placeholder="搜尋醫院名稱…"></div>
+    </div>
+  </div>
+
+  <div class="count" id="count"></div>
+
+  <div class="tablecard">
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th data-k="area">地區</th>
+          <th data-k="special">特約類別</th>
+          <th data-k="name" style="text-align:left">機構名稱</th>
+          <th data-k="denom">急診轉住院<br>案件數</th>
+          <th data-k="num">暫留逾48小時<br>案件數</th>
+          <th data-k="rate">院所指標值<br>（占比）</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <footer>
+    台大＋其他v1 群組：台大總院、台大癌醫中心分院、台大新竹臺大分院（新竹醫院／生醫醫院）、台大雲林分院、羅東聖母醫院、輔大醫院。<br>
+    本指標僅納入有急診轉住院案件之醫院；地區醫院若無相關案件則不在名單內。<br>
+    院所指標值＝暫留逾 48 小時案件數 ÷ 急診轉住院案件數。本頁為資料整理，僅供參考。
+  </footer>
+</div>
+
+<script>
+const DATA = [{"area": "新北市泰山區", "region": "新北市", "special": "區域醫院", "code": "1331160010", "name": "輔仁大學學校財團法人輔仁大學附設醫院", "denom": 1575, "num": 429, "rate": 27.24, "taida": true}, {"area": "臺北市中正區", "region": "臺北市", "special": "醫學中心", "code": "0401180014", "name": "國立臺灣大學醫學院附設醫院", "denom": 5246, "num": 1361, "rate": 25.94, "taida": true}, {"area": "臺北市大安區", "region": "臺北市", "special": "區域醫院", "code": "0401020013", "name": "國立臺灣大學醫學院附設醫院癌醫中心分院", "denom": 484, "num": 119, "rate": 24.59, "taida": true}, {"area": "新北市土城區", "region": "新北市", "special": "區域醫院", "code": "1131130018", "name": "新北市立土城醫院（委託長庚醫療財團法人興建經營）", "denom": 1548, "num": 355, "rate": 22.93, "taida": false}, {"area": "臺北市文山區", "region": "臺北市", "special": "醫學中心", "code": "1301200010", "name": "臺北市立萬芳醫院－委託臺北醫學大學辦理", "denom": 1968, "num": 449, "rate": 22.82, "taida": false}, {"area": "新北市新店區", "region": "新北市", "special": "區域醫院", "code": "1231050017", "name": "天主教耕莘醫療財團法人耕莘醫院", "denom": 1624, "num": 336, "rate": 20.69, "taida": false}, {"area": "雲林縣斗六市", "region": "其他", "special": "區域醫院", "code": "0439010518", "name": "國立臺灣大學醫學院附設醫院雲林分院", "denom": 2825, "num": 516, "rate": 18.27, "taida": true}, {"area": "新北市三峽區", "region": "新北市", "special": "區域醫院", "code": "1131090019", "name": "行天宮醫療志業醫療財團法人恩主公醫院", "denom": 1896, "num": 322, "rate": 16.98, "taida": false}, {"area": "新北市中和區", "region": "新北市", "special": "醫學中心", "code": "1331040513", "name": "衛生福利部雙和醫院〈委託臺北醫學大學興建經營〉", "denom": 3732, "num": 575, "rate": 15.41, "taida": false}, {"area": "臺北市士林區", "region": "臺北市", "special": "醫學中心", "code": "1101150011", "name": "新光醫療財團法人新光吳火獅紀念醫院", "denom": 2298, "num": 338, "rate": 14.71, "taida": false}, {"area": "臺北市內湖區", "region": "臺北市", "special": "醫學中心", "code": "0501110514", "name": "三軍總醫院附設民眾診療服務處", "denom": 4484, "num": 610, "rate": 13.6, "taida": false}, {"area": "新竹市北區", "region": "其他", "special": "醫學中心", "code": "0412040012", "name": "國立臺灣大學醫學院附設醫院新竹臺大分院新竹醫院", "denom": 1970, "num": 208, "rate": 10.56, "taida": true}, {"area": "臺北市北投區", "region": "臺北市", "special": "醫學中心", "code": "0601160016", "name": "臺北榮民總醫院", "denom": 5773, "num": 517, "rate": 8.96, "taida": false}, {"area": "臺北市中山區", "region": "臺北市", "special": "醫學中心", "code": "1101100011", "name": "台灣基督長老教會馬偕醫療財團法人馬偕紀念醫院", "denom": 6053, "num": 450, "rate": 7.43, "taida": false}, {"area": "新北市汐止區", "region": "新北市", "special": "區域醫院", "code": "1131110516", "name": "國泰醫療財團法人汐止國泰綜合醫院", "denom": 1329, "num": 58, "rate": 4.36, "taida": false}, {"area": "臺北市信義區", "region": "臺北市", "special": "區域醫院", "code": "1301170017", "name": "臺北醫學大學附設醫院", "denom": 2034, "num": 80, "rate": 3.93, "taida": false}, {"area": "新北市新店區", "region": "新北市", "special": "醫學中心", "code": "1131050515", "name": "佛教慈濟醫療財團法人台北慈濟醫院", "denom": 3223, "num": 87, "rate": 2.7, "taida": false}, {"area": "新竹縣竹北市", "region": "其他", "special": "區域醫院", "code": "0433050018", "name": "國立臺灣大學醫學院附設醫院新竹臺大分院生醫醫院", "denom": 1451, "num": 39, "rate": 2.69, "taida": true}, {"area": "新北市新莊區", "region": "新北市", "special": "地區醫院", "code": "0131060010", "name": "衛生福利部樂生療養院", "denom": 593, "num": 15, "rate": 2.53, "taida": false}, {"area": "臺北市大同區", "region": "臺北市", "special": "區域醫院", "code": "0101090517", "name": "臺北市立聯合醫院", "denom": 5075, "num": 119, "rate": 2.34, "taida": false}, {"area": "新北市八里區", "region": "新北市", "special": "區域醫院", "code": "0131230012", "name": "衛生福利部八里療養院", "denom": 92, "num": 2, "rate": 2.17, "taida": false}, {"area": "宜蘭縣羅東鎮", "region": "其他", "special": "區域醫院", "code": "1134020028", "name": "天主教靈醫會醫療財團法人羅東聖母醫院", "denom": 1775, "num": 36, "rate": 2.03, "taida": true}, {"area": "新北市板橋區", "region": "新北市", "special": "醫學中心", "code": "1131010011", "name": "醫療財團法人徐元智先生醫藥基金會亞東紀念醫院", "denom": 5451, "num": 109, "rate": 2.0, "taida": false}, {"area": "臺北市北投區", "region": "臺北市", "special": "區域醫院", "code": "0501160014", "name": "三軍總醫院北投分院附設民眾診療服務處", "denom": 503, "num": 9, "rate": 1.79, "taida": false}, {"area": "臺北市大安區", "region": "臺北市", "special": "醫學中心", "code": "1101020018", "name": "國泰醫療財團法人國泰綜合醫院", "denom": 844, "num": 13, "rate": 1.54, "taida": false}, {"area": "新北市三重區", "region": "新北市", "special": "區域醫院", "code": "0131020016", "name": "新北市立聯合醫院", "denom": 1815, "num": 17, "rate": 0.94, "taida": false}, {"area": "新北市新莊區", "region": "新北市", "special": "區域醫院", "code": "0131060029", "name": "衛生福利部臺北醫院", "denom": 2272, "num": 18, "rate": 0.79, "taida": false}, {"area": "臺北市松山區", "region": "臺北市", "special": "區域醫院", "code": "1101010021", "name": "基督復臨安息日會醫療財團法人臺安醫院", "denom": 937, "num": 1, "rate": 0.11, "taida": false}, {"area": "臺北市北投區", "region": "臺北市", "special": "區域醫院", "code": "1101160017", "name": "振興醫療財團法人振興醫院", "denom": 2610, "num": 0, "rate": 0.0, "taida": false}, {"area": "臺北市松山區", "region": "臺北市", "special": "區域醫院", "code": "0501010019", "name": "三軍總醫院松山分院附設民眾診療服務處", "denom": 788, "num": 0, "rate": 0.0, "taida": false}, {"area": "臺北市北投區", "region": "臺北市", "special": "區域醫院", "code": "1101160026", "name": "醫療財團法人辜公亮基金會和信治癌中心醫院", "denom": 355, "num": 0, "rate": 0.0, "taida": false}, {"area": "新北市永和區", "region": "新北市", "special": "地區醫院", "code": "1231030015", "name": "天主教耕莘醫療財團法人永和耕莘醫院", "denom": 1027, "num": 0, "rate": 0.0, "taida": false}, {"area": "新北市新莊區", "region": "新北市", "special": "地區醫院", "code": "1531061249", "name": "新泰綜合醫院", "denom": 440, "num": 0, "rate": 0.0, "taida": false}, {"area": "臺北市萬華區", "region": "臺北市", "special": "地區醫院", "code": "0901190010", "name": "西園醫療社團法人西園醫院", "denom": 314, "num": 0, "rate": 0.0, "taida": false}, {"area": "新北市樹林區", "region": "新北市", "special": "地區醫院", "code": "1531071030", "name": "仁愛醫院", "denom": 310, "num": 0, "rate": 0.0, "taida": false}, {"area": "新北市三重區", "region": "新北市", "special": "地區醫院", "code": "1531021192", "name": "宏仁醫院", "denom": 275, "num": 0, "rate": 0.0, "taida": false}, {"area": "新北市金山區", "region": "新北市", "special": "地區醫院", "code": "0431270012", "name": "國立臺灣大學醫學院附設醫院金山分院", "denom": 231, "num": 0, "rate": 0.0, "taida": false}, {"area": "臺北市松山區", "region": "臺北市", "special": "地區醫院", "code": "1501010010", "name": "博仁綜合醫院", "denom": 110, "num": 0, "rate": 0.0, "taida": false}, {"area": "臺北市北投區", "region": "臺北市", "special": "地區醫院", "code": "0701160518", "name": "臺北市立關渡醫院-委託臺北榮民總醫院經營", "denom": 48, "num": 0, "rate": 0.0, "taida": false}, {"area": "臺北市大安區", "region": "臺北市", "special": "地區醫院", "code": "0901020013", "name": "中山醫療社團法人中山醫院", "denom": 12, "num": 0, "rate": 0.0, "taida": false}, {"area": "臺北市大安區", "region": "臺北市", "special": "地區醫院", "code": "1101020027", "name": "中心診所醫療財團法人中心綜合醫院", "denom": 11, "num": 0, "rate": 0.0, "taida": false}, {"area": "臺北市內湖區", "region": "臺北市", "special": "地區醫院", "code": "1101110026", "name": "康寧醫療財團法人康寧醫院", "denom": 5, "num": 0, "rate": 0.0, "taida": false}, {"area": "臺北市大安區", "region": "臺北市", "special": "地區醫院", "code": "1101020036", "name": "宏恩醫療財團法人宏恩綜合醫院", "denom": 3, "num": 0, "rate": 0.0, "taida": false}];
+const maxRate = Math.max(...DATA.filter(d=>d.rate!=null).map(d=>d.rate));
+let curFilter="all", curSort={k:"rate",dir:-1}, curQ="";
+const tbody=document.getElementById("tbody"),countEl=document.getElementById("count"),qEl=document.getElementById("q");
+
+function fmtNum(n){return n==null?'<span class="na">—</span>':Number(n).toLocaleString('en');}
+function pctCell(p){
+  if(p==null) return '<span class="na">—</span>';
+  const w=Math.max(3,Math.round(p/maxRate*70));
+  return '<div class="pcell"><span class="bar" style="width:'+w+'px"></span><span class="val">'+p.toFixed(2)+'%</span></div>';
+}
+function apply(){
+  let rows=DATA.slice();
+  if(curFilter==="taida") rows=rows.filter(d=>d.taida);
+  else if(curFilter!=="all") rows=rows.filter(d=>d.region===curFilter);
+  if(curQ) rows=rows.filter(d=>d.name.includes(curQ)||d.area.includes(curQ));
+  const k=curSort.k,dir=curSort.dir;
+  rows.sort((a,b)=>{let x=a[k],y=b[k];
+    if(x==null)x=-Infinity;if(y==null)y=-Infinity;
+    if(typeof x==="string")return dir*x.localeCompare(y,'zh-Hant');
+    return dir*(x-y);});
+  render(rows);
+}
+function render(rows){
+  let html="";
+  for(const d of rows){
+    html+='<tr class="'+(d.taida?'taida':'')+'">'+
+      '<td>'+d.area+'</td>'+
+      '<td>'+d.special+'</td>'+
+      '<td class="name">'+d.name+(d.taida?'<span class="tag">台大+其他v1</span>':'')+'</td>'+
+      '<td class="num">'+fmtNum(d.denom)+'</td>'+
+      '<td class="num">'+fmtNum(d.num)+'</td>'+
+      '<td>'+pctCell(d.rate)+'</td>'+
+    '</tr>';
+  }
+  tbody.innerHTML=html||'<tr><td colspan="6" style="padding:30px;color:#bbb">查無資料</td></tr>';
+  countEl.textContent="共 "+rows.length+" 家醫院";
+}
+document.querySelectorAll("button.f").forEach(b=>{b.onclick=()=>{
+  document.querySelectorAll("button.f").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");curFilter=b.dataset.filter;apply();};});
+qEl.oninput=()=>{curQ=qEl.value.trim();apply();};
+document.querySelectorAll("thead th").forEach(th=>{th.onclick=()=>{
+  const k=th.dataset.k;
+  if(curSort.k===k)curSort.dir*=-1;else{curSort.k=k;curSort.dir=(k==="area"||k==="special"||k==="name")?1:-1;}
+  document.querySelectorAll("thead th").forEach(x=>{x.classList.remove("sorted");const a=x.querySelector(".arrow");if(a)a.remove();});
+  th.classList.add("sorted");
+  th.insertAdjacentHTML("beforeend",'<span class="arrow">'+(curSort.dir>0?"▲":"▼")+'</span>');
+  apply();};});
+(function(){const th=document.querySelector('thead th[data-k="rate"]');
+  th.classList.add("sorted");th.insertAdjacentHTML("beforeend",'<span class="arrow">▼</span>');})();
+apply();
+</script>
+</body>
+</html>
